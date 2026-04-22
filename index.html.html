@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero Comuna 14 — Cali</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --bg:       #f0f4f8;
+  --card:     #ffffff;
+  --dark:     #0f1923;
+  --accent:   #e8471a;
+  --accent2:  #ff6b3d;
+  --blue:     #1e40af;
+  --green:    #059669;
+  --yellow:   #d97706;
+  --text:     #1a2332;
+  --muted:    #64748b;
+  --border:   #e2e8f0;
+  --shadow:   0 2px 12px rgba(0,0,0,0.08);
+  --radius:   12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--dark);
+  color: white;
+  padding: 0 24px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+}
+.header-logo {
+  width: 32px; height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.header-sub { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+.header-right {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 10px;
+}
+.pill {
+  background: rgba(232,71,26,0.15);
+  color: var(--accent2);
+  border: 1px solid rgba(232,71,26,0.3);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.pill.green {
+  background: rgba(5,150,105,0.15);
+  color: #10b981;
+  border-color: rgba(5,150,105,0.3);
+}
+
+/* ── LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  height: calc(100vh - 58px);
+}
+
+/* ── KPI STRIP ── */
+.kpi-strip {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--dark);
+  border-bottom: 3px solid var(--accent);
+}
+.kpi {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background .2s;
+}
+.kpi:hover { background: rgba(255,255,255,0.09); }
+.kpi-icon {
+  font-size: 22px;
+  width: 40px; height: 40px;
+  background: rgba(232,71,26,0.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.kpi-icon.b { background: rgba(30,64,175,0.25); }
+.kpi-icon.g { background: rgba(5,150,105,0.25); }
+.kpi-icon.y { background: rgba(217,119,6,0.25); }
+.kpi-icon.p { background: rgba(124,58,237,0.25); }
+.kpi-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+}
+.kpi-lbl { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-section {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-section h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* Search */
+.search-wrap { position: relative; }
+.search-wrap input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px 8px 32px;
+  font-size: 13px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--text);
+  outline: none;
+  transition: border-color .2s;
+  background: var(--bg);
+}
+.search-wrap input:focus { border-color: var(--accent); }
+.search-wrap::before {
+  content: "🔍"; position: absolute;
+  left: 9px; top: 50%; transform: translateY(-50%);
+  font-size: 12px;
+}
+
+/* Botones */
+.btn-row { display: flex; gap: 6px; margin-top: 8px; }
+.btn {
+  flex: 1; padding: 6px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  background: white;
+  color: var(--text);
+  font-size: 12px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.filled { background: var(--accent); border-color: var(--accent); color: white; }
+.btn.filled:hover { background: var(--accent2); }
+
+/* Lista barrios */
+.barrio-scroll { flex: 1; overflow-y: auto; padding: 6px 8px; }
+.barrio-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 8px; border-radius: 8px;
+  cursor: pointer; transition: background .15s;
+  user-select: none;
+}
+.barrio-item:hover { background: var(--bg); }
+.barrio-item.on { background: #fff5f2; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  flex-shrink: 0; border: 2px solid rgba(0,0,0,0.1);
+}
+.bname { flex: 1; font-size: 12.5px; }
+.bcnt {
+  font-size: 11px; color: var(--muted);
+  background: var(--bg); border-radius: 10px;
+  padding: 1px 7px; font-weight: 500;
+}
+
+/* Mini chart */
+.mini-chart { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.bar-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+}
+.bar-label { font-size: 11px; color: var(--muted); width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { flex: 1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+.bar-val { font-size: 11px; font-weight: 600; color: var(--text); width: 20px; text-align: right; }
+
+/* Stats bottom */
+.sidebar-stats {
+  padding: 10px 16px;
+  display: flex; gap: 8px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.sstat {
+  flex: 1; text-align: center;
+  background: white; border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px;
+}
+.sstat .n {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800; color: var(--accent);
+}
+.sstat .l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── MAPA ── */
+#map { width: 100%; height: 100%; }
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  font-family: 'IBM Plex Sans', sans-serif;
+  border: 1px solid var(--border);
+}
+.popup-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--text); }
+.popup-barrio { color: var(--accent); font-size: 12px; font-weight: 500; }
+.popup-coords { color: var(--muted); font-size: 11px; margin-top: 4px; font-family: monospace; }
+.popup-id { float: right; background: var(--bg); border-radius: 5px; padding: 1px 6px; font-size: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-logo">📍</div>
+  <div>
+    <div class="header h1" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:white">Tablero de Control — Puntos Georreferenciados</div>
+    <div class="header-sub">Comuna 14 · Cali, Valle del Cauca · Colombia</div>
+  </div>
+  <div class="header-right">
+    <div class="pill green">● En línea</div>
+    <div class="pill" id="hBadge">99 registros</div>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="kpi-icon">📍</div>
+      <div><div class="kpi-num" id="kTotal">99</div><div class="kpi-lbl">Total puntos</div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon b">🏘</div>
+      <div><div class="kpi-num" id="kBarrios">13</div><div class="kpi-lbl">Barrios</div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon g">✅</div>
+      <div><div class="kpi-num" id="kVisible">99</div><div class="kpi-lbl">Visibles</div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon y">🏆</div>
+      <div><div class="kpi-num" id="kTop">—</div><div class="kpi-lbl">Barrio principal</div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon p">📊</div>
+      <div><div class="kpi-num" id="kPct">100%</div><div class="kpi-lbl">Cobertura</div></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>Filtrar por barrio</h3>
+      <div class="search-wrap">
+        <input type="text" id="searchB" placeholder="Buscar barrio...">
+      </div>
+      <div class="btn-row">
+        <button class="btn filled" onclick="selAll()">✅ Todos</button>
+        <button class="btn" onclick="selNone()">❌ Ninguno</button>
+      </div>
+    </div>
+
+    <div class="barrio-scroll" id="barrioList"></div>
+
+    <div class="mini-chart" id="miniChart">
+      <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px">Distribución</div>
+      <div id="chartBars"></div>
+    </div>
+
+    <div class="sidebar-stats">
+      <div class="sstat"><div class="n" id="sVis">99</div><div class="l">Visibles</div></div>
+      <div class="sstat"><div class="n" id="sBrr">13</div><div class="l">Barrios</div></div>
+    </div>
+  </aside>
+
+  <!-- MAPA -->
+  <div id="map"></div>
+</div>
+
+<script>
+// ── DATOS ──────────────────────────────────────────────────────────────────
+const puntos = [
+  {id:1,  dir:"CR 26 C # 89-44",          barrio:"VILLA SAN MARCOS",        lat:3.44385, lng:-76.48210},
+  {id:2,  dir:"CR 26 H2 # 83-10",         barrio:"MARROQUIN II",            lat:3.44612, lng:-76.47988},
+  {id:3,  dir:"CR 27 # 91 A 11",          barrio:"ALFONSO BONILLA ARAGON",  lat:3.44190, lng:-76.47855},
+  {id:4,  dir:"CL 108 # 26 K1-10",        barrio:"MANUELA BELTRAN",         lat:3.44822, lng:-76.47791},
+  {id:5,  dir:"CL 79 # 28A-11",           barrio:"ALFONSO BONILLA ARAGON",  lat:3.43876, lng:-76.47540},
+  {id:6,  dir:"CR 26B # 108 A - 21",      barrio:"PROMOCIONES POPULARES",   lat:3.44955, lng:-76.48112},
+  {id:7,  dir:"CR 26 E 1 # 91 - 113",     barrio:"PUERTAS DEL SOL",         lat:3.44302, lng:-76.48066},
+  {id:8,  dir:"CR 26 H 4 # 93 - 03",      barrio:"MARROQUIN II",            lat:3.44420, lng:-76.47935},
+  {id:9,  dir:"CL 119 #26-65",            barrio:"INVICALI",                lat:3.45188, lng:-76.48002},
+  {id:10, dir:"DG 109 #26G3-30",          barrio:"PUERTAS DEL SOL",         lat:3.44801, lng:-76.47990},
+  {id:11, dir:"CR 26 P # 73A-116",        barrio:"ALFONSO BONILLA ARAGON",  lat:3.43595, lng:-76.47620},
+  {id:12, dir:"CR 26D1 #97-107",          barrio:"PUERTAS DEL SOL",         lat:3.44630, lng:-76.48011},
+  {id:13, dir:"CR 26P13 # 103E -04",      barrio:"MARROQUIN I",             lat:3.44788, lng:-76.47730},
+  {id:14, dir:"CR 26 A2 # 75 B - 35",     barrio:"ALIRIO MORA BELTRAN",     lat:3.43640, lng:-76.48122},
+  {id:15, dir:"CLL 80 # 26 - 11",         barrio:"QUINTA DEL SOL",          lat:3.43890, lng:-76.48050},
+  {id:16, dir:"CR 26 C1 # 118-45",        barrio:"MANUELA BELTRAN",         lat:3.45020, lng:-76.48010},
+  {id:17, dir:"CR 26 D # 80 - 17",        barrio:"TERCER MILENIO",          lat:3.43810, lng:-76.47930},
+  {id:18, dir:"CR 26 D # 73 - 74",        barrio:"MARROQUIN II",            lat:3.43488, lng:-76.47970},
+  {id:19, dir:"CR 26 P 9 # 103 C - 80",   barrio:"MARROQUIN I",             lat:3.44760, lng:-76.47690},
+  {id:20, dir:"CR 26G2 #94-37",           barrio:"VILLA SAN MARCOS",        lat:3.44400, lng:-76.48100},
+  {id:21, dir:"CL 116 #26L-17",           barrio:"MANUELA BELTRAN",         lat:3.45000, lng:-76.47800},
+  {id:22, dir:"CL 107 B # 28-11",         barrio:"LAS ORQUIDEAS",           lat:3.44710, lng:-76.47480},
+  {id:23, dir:"CL 110 # 26 I - 67",       barrio:"MANUELA BELTRAN",         lat:3.44900, lng:-76.47860},
+  {id:24, dir:"CL 99 # 26 C1 - 28",       barrio:"PUERTAS DEL SOL",         lat:3.44580, lng:-76.48140},
+  {id:25, dir:"CL 105 # 26 H-93",         barrio:"MANUELA BELTRAN",         lat:3.44720, lng:-76.47910},
+  {id:26, dir:"CR 26A # 89 - 42",         barrio:"PUERTAS DEL SOL",         lat:3.44390, lng:-76.48200},
+  {id:27, dir:"CR 26 H1 # 112 - 45",      barrio:"MANUELA BELTRAN",         lat:3.45080, lng:-76.47870},
+  {id:28, dir:"CR 26 P 9 # 87 - 81",      barrio:"MARROQUIN I",             lat:3.44210, lng:-76.47660},
+  {id:29, dir:"CR 26 B1 # 80 -32",        barrio:"LOS NARANJOS II",         lat:3.43800, lng:-76.48220},
+  {id:30, dir:"DG 26 P 5 # 103C - 35",    barrio:"MARROQUIN II",            lat:3.44730, lng:-76.47800},
+  {id:31, dir:"CR 26 U # 116 -11",        barrio:"MANUELA BELTRAN",         lat:3.45150, lng:-76.47690},
+  {id:32, dir:"CR 26 C1 # 91 - 80",       barrio:"PUERTAS DEL SOL",         lat:3.44410, lng:-76.48130},
+  {id:33, dir:"CR 26 C # 112 - 157",      barrio:"MANUELA BELTRAN",         lat:3.45070, lng:-76.48040},
+  {id:34, dir:"CR 26 O # 112 - 86",       barrio:"MANUELA BELTRAN",         lat:3.45050, lng:-76.47780},
+  {id:35, dir:"CR 26 B1 # 91 -74",        barrio:"PUERTAS DEL SOL",         lat:3.44450, lng:-76.48210},
+  {id:36, dir:"CL 74 # 27 B - 45",        barrio:"ALFONSO BONILLA ARAGON",  lat:3.43390, lng:-76.47610},
+  {id:37, dir:"CR 36 G 11 #73 B - 04",    barrio:"MARROQUIN II",            lat:3.43540, lng:-76.47200},
+  {id:38, dir:"DG 109 # 26 I - 47",       barrio:"NUEVE DE ENERO",          lat:3.44830, lng:-76.47840},
+  {id:39, dir:"CR 26 P 16 # 103 A - 02",  barrio:"MARROQUIN I",             lat:3.44710, lng:-76.47630},
+  {id:40, dir:"CL 97 # 27D-27",           barrio:"ALFONSO BONILLA ARAGON",  lat:3.44300, lng:-76.47500},
+  {id:41, dir:"CR 26 H 3 # 117 - 60",     barrio:"MANUELA BELTRAN",         lat:3.45110, lng:-76.47890},
+  {id:42, dir:"CR 26 K 1 # 118 - 67",     barrio:"MANUELA BELTRAN",         lat:3.45190, lng:-76.47810},
+  {id:43, dir:"CL 94 # 26 B 3 - 16",      barrio:"PUERTAS DEL SOL",         lat:3.44450, lng:-76.48220},
+  {id:44, dir:"CL 80 BIS # 26-90",        barrio:"QUINTAS DEL SOL",         lat:3.43930, lng:-76.48070},
+  {id:45, dir:"CR 28 # 86 - 18",          barrio:"ALFONSO BONILLA ARAGON",  lat:3.44120, lng:-76.47400},
+  {id:46, dir:"CL 107 B # 26 H-16",       barrio:"MANUELA BELTRAN",         lat:3.44780, lng:-76.47890},
+  {id:47, dir:"CL 105 H # 26 H -16",      barrio:"MANUELA BELTRAN",         lat:3.44750, lng:-76.47920},
+  {id:48, dir:"CR 26P # 80-53",           barrio:"MARROQUIN II",            lat:3.43950, lng:-76.47650},
+  {id:49, dir:"CR 26 B1 # 77-19",         barrio:"ALIRIO MORA BELTRAN",     lat:3.43700, lng:-76.48180},
+  {id:50, dir:"CL 112 # 26 N-19",         barrio:"MANUELA BELTRAN",         lat:3.45090, lng:-76.47760},
+  {id:51, dir:"CL 91 # 26 U-12",          barrio:"ALFONSO BONILLA ARAGON",  lat:3.44220, lng:-76.47490},
+  {id:52, dir:"CR 26 B2 # 79-40",         barrio:"ALIRIO MORA BELTRAN",     lat:3.43800, lng:-76.48150},
+  {id:53, dir:"CL 114 # 26-04",           barrio:"INVICALI",                lat:3.45100, lng:-76.47980},
+  {id:54, dir:"CL 112 # 26-77",           barrio:"CIUDADELA INVICALI",      lat:3.45080, lng:-76.48020},
+  {id:55, dir:"CL 78 B # 103 - 15",       barrio:"LOS NARANJOS",            lat:3.43780, lng:-76.48300},
+  {id:56, dir:"CR 26T # 73-136",          barrio:"ALFONSO BONILLA",         lat:3.43450, lng:-76.47600},
+  {id:57, dir:"CR 26K # 83-45",           barrio:"MARROQUIN II",            lat:3.44080, lng:-76.47800},
+  {id:58, dir:"CL 117 # 27D-106",         barrio:"LAS ORQUIDEAS",           lat:3.44920, lng:-76.47490},
+  {id:59, dir:"CL 105 #27D-151",          barrio:"LAS ORQUIDEAS",           lat:3.44790, lng:-76.47510},
+  {id:60, dir:"CR 26J #114-11",           barrio:"MANUELA BELTRAN",         lat:3.45030, lng:-76.47820},
+  {id:61, dir:"CL 112 #26H1-04",          barrio:"MANUELA BELTRAN",         lat:3.45070, lng:-76.47860},
+  {id:62, dir:"CR 26 P1 # 101-07",        barrio:"MARROQUIN II",            lat:3.44690, lng:-76.47780},
+  {id:63, dir:"CR 26 P 11 # 103C -74",    barrio:"MARROQUIN I",             lat:3.44740, lng:-76.47670},
+  {id:64, dir:"DG 26 P 23 # 105 - 26",    barrio:"MARROQUIN",               lat:3.44820, lng:-76.47620},
+  {id:65, dir:"CR 26N #108-03",           barrio:"MANUELA BELTRAN",         lat:3.44990, lng:-76.47810},
+  {id:66, dir:"CL 112 # 27 - 35",         barrio:"LAS ORQUIDEAS",           lat:3.45060, lng:-76.47530},
+  {id:67, dir:"CR 26 I 1 # 96 A - 05",    barrio:"VILLA SAN MARCOS",        lat:3.44510, lng:-76.48090},
+  {id:68, dir:"CR 26J3 #116-23",          barrio:"MANUELA BELTRAN",         lat:3.45130, lng:-76.47820},
+  {id:69, dir:"CR 26 J # 93-59",          barrio:"MARROQUIN II",            lat:3.44490, lng:-76.47920},
+  {id:70, dir:"CR 26P17 #103D-59",        barrio:"MARROQUIN I",             lat:3.44790, lng:-76.47640},
+  {id:71, dir:"CR 26 P10 # 103-10",       barrio:"MARROQUIN I",             lat:3.44720, lng:-76.47660},
+  {id:72, dir:"CR 26 K # 115 -50",        barrio:"MANUELA BELTRAN",         lat:3.45110, lng:-76.47830},
+  {id:73, dir:"CR 26 E # 91 - 63",        barrio:"PUERTAS DEL SOL",         lat:3.44330, lng:-76.48050},
+  {id:74, dir:"CL 80 C # 26 D-89",        barrio:"LOS NARANJOS II",         lat:3.43910, lng:-76.48190},
+  {id:75, dir:"CL 80A #26D-22",           barrio:"LOS NARANJOS II",         lat:3.43870, lng:-76.48170},
+  {id:76, dir:"DG 109 #26I-83",           barrio:"PUERTAS DEL SOL",         lat:3.44810, lng:-76.47890},
+  {id:77, dir:"CL 108 # 26 P - 12",       barrio:"MANUELA BELTRAN",         lat:3.44860, lng:-76.47680},
+  {id:78, dir:"CR 26A #78-29",            barrio:"ALIRIO MORA BELTRAN",     lat:3.43720, lng:-76.48130},
+  {id:79, dir:"CL 114 # 26B1 - 11",       barrio:"PUERTAS DEL SOL",         lat:3.45090, lng:-76.48120},
+  {id:80, dir:"CL 99 #26B1-18",           barrio:"PUERTAS DEL SOL",         lat:3.44540, lng:-76.48210},
+  {id:81, dir:"CR 26K # 73A-66",          barrio:"MARROQUIN II",            lat:3.43520, lng:-76.47840},
+  {id:82, dir:"CR 26 P14 # 103 A - 59",   barrio:"MARROQUIN I",             lat:3.44760, lng:-76.47610},
+  {id:83, dir:"CL 105 26P # 18-28",       barrio:"MARROQUIN I",             lat:3.44680, lng:-76.47600},
+  {id:84, dir:"CL 80B # 26 - 48",         barrio:"QUINTAS DEL SOL",         lat:3.43900, lng:-76.48080},
+  {id:85, dir:"CR 26 B 3 # 73 - 17",      barrio:"MARROQUIN II",            lat:3.43490, lng:-76.47940},
+  {id:86, dir:"CR 26 M # 116-101",        barrio:"MANUELA BELTRAN",         lat:3.45140, lng:-76.47750},
+  {id:87, dir:"CL 107B #26H-23",          barrio:"MANUELA BELTRAN",         lat:3.44760, lng:-76.47880},
+  {id:88, dir:"CR 26 U # 73-15",          barrio:"ALFONSO BONILLA ARAGON",  lat:3.43480, lng:-76.47620},
+  {id:89, dir:"CL120 # 26 I - 80",        barrio:"MANUELA BELTRAN",         lat:3.45220, lng:-76.47840},
+  {id:90, dir:"CR 26J #73B-81",           barrio:"MARROQUIN II",            lat:3.43530, lng:-76.47860},
+  {id:91, dir:"CR 26H2 #73B-11",          barrio:"MARROQUIN II",            lat:3.43500, lng:-76.47900},
+  {id:92, dir:"CR 26 F1 #73-59",          barrio:"MARROQUIN II",            lat:3.43470, lng:-76.47920},
+  {id:93, dir:"CR 26 I2 #80-24",          barrio:"MARROQUIN II",            lat:3.43920, lng:-76.47880},
+  {id:94, dir:"CL 75 B # 26 A1-07",       barrio:"ALIRIO MORA BELTRAN",     lat:3.43680, lng:-76.48140},
+  {id:95, dir:"CL 108 # 26 H1 - 59",      barrio:"MANUELA BELTRAN",         lat:3.44850, lng:-76.47870},
+  {id:96, dir:"CR 26C #73A-46",           barrio:"MARROQUIN II",            lat:3.43510, lng:-76.47930},
+  {id:97, dir:"CARRERA 26 I2 # 73 - 06",  barrio:"MARROQUIN II",            lat:3.43480, lng:-76.47910},
+  {id:98, dir:"CARRERA 26 R # 73 - 88",   barrio:"BONILLA ARAGON",          lat:3.43500, lng:-76.47610},
+  {id:99, dir:"CARRERA 26B # 75B 35",     barrio:"ALIRIO MORA BELTRAN",     lat:3.43710, lng:-76.48160}
+];
+
+// ── COLORES ────────────────────────────────────────────────────────────────
+const COLS = ["#e8471a","#1e40af","#059669","#d97706","#7c3aed",
+              "#db2777","#0891b2","#65a30d","#dc2626","#4f46e5",
+              "#0d9488","#c2410c","#9333ea","#0284c7","#16a34a",
+              "#ea580c","#a21caf","#0369a1"];
+
+const barrios = [...new Set(puntos.map(p=>p.barrio))].sort();
+const cmap = {};
+barrios.forEach((b,i) => cmap[b] = COLS[i % COLS.length]);
+
+// ── MAPA ──────────────────────────────────────────────────────────────────
+const map = L.map('map').setView([3.4430, -76.4780], 14);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+  attribution:'© OpenStreetMap © CartoDB', maxZoom:19
+}).addTo(map);
+
+function mkIcon(c) {
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:12px;height:12px;background:${c};border-radius:50%;border:2.5px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3)"></div>`,
+    iconSize:[12,12], iconAnchor:[6,6]
+  });
+}
+
+let mks = {};
+let active = new Set(barrios);
+
+puntos.forEach(p => {
+  const m = L.marker([p.lat,p.lng],{icon:mkIcon(cmap[p.barrio])})
+    .bindPopup(`
+      <span class="popup-id">#${p.id}</span>
+      <div class="popup-title">${p.dir}</div>
+      <div class="popup-barrio">▸ ${p.barrio}</div>
+      <div class="popup-coords">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div>
+    `);
+  m.addTo(map);
+  mks[p.id] = {m, barrio:p.barrio};
+});
+
+// ── SIDEBAR LISTA ─────────────────────────────────────────────────────────
+function cnt(b){ return puntos.filter(p=>p.barrio===b).length; }
+const maxCnt = Math.max(...barrios.map(cnt));
+
+function renderList(q=''){
+  const el = document.getElementById('barrioList');
+  el.innerHTML='';
+  barrios.filter(b=>b.toLowerCase().includes(q.toLowerCase())).forEach(b=>{
+    const on = active.has(b);
+    const d = document.createElement('div');
+    d.className='barrio-item'+(on?' on':'');
+    d.innerHTML=`
+      <div class="dot" style="background:${on?cmap[b]:'#cbd5e1'}"></div>
+      <span class="bname">${b}</span>
+      <span class="bcnt">${cnt(b)}</span>`;
+    d.onclick=()=>toggle(b);
+    el.appendChild(d);
+  });
+  renderChart(q);
+}
+
+function renderChart(q=''){
+  const el = document.getElementById('chartBars');
+  el.innerHTML='';
+  barrios.filter(b=>b.toLowerCase().includes(q.toLowerCase()))
+    .sort((a,b2)=>cnt(b2)-cnt(a)).slice(0,6).forEach(b=>{
+    const pct = Math.round(cnt(b)/maxCnt*100);
+    el.innerHTML+=`
+      <div class="bar-row">
+        <div class="bar-label" title="${b}">${b}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${cmap[b]}"></div></div>
+        <div class="bar-val">${cnt(b)}</div>
+      </div>`;
+  });
+}
+
+function toggle(b){
+  active.has(b)?active.delete(b):active.add(b);
+  refresh(); renderList(document.getElementById('searchB').value);
+}
+function selAll(){ active=new Set(barrios); refresh(); renderList(document.getElementById('searchB').value); }
+function selNone(){ active.clear(); refresh(); renderList(document.getElementById('searchB').value); }
+
+function refresh(){
+  let v=0;
+  Object.values(mks).forEach(({m,barrio})=>{
+    if(active.has(barrio)){ m.addTo(map); v++; } else map.removeLayer(m);
+  });
+  const topB = [...active].sort((a,b2)=>cnt(b2)-cnt(a))[0]||'—';
+  document.getElementById('kVisible').textContent = v;
+  document.getElementById('kBarrios').textContent = active.size;
+  document.getElementById('kTop').textContent     = topB.split(' ')[0];
+  document.getElementById('kPct').textContent     = Math.round(v/puntos.length*100)+'%';
+  document.getElementById('sVis').textContent     = v;
+  document.getElementById('sBrr').textContent     = active.size;
+  document.getElementById('hBadge').textContent   = v+' registros';
+}
+
+document.getElementById('searchB').addEventListener('input', e=>renderList(e.target.value));
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+const topInicio = barrios.sort((a,b)=>cnt(b)-cnt(a))[0];
+document.getElementById('kTop').textContent = topInicio.split(' ')[0];
+renderList();
+</script>
+</body>
+</html>
